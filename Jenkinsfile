@@ -12,10 +12,10 @@ pipeline {
         stage('Build & Unit Tests') {
             steps {
                 echo "Installing dependencies and running tests..."
-                sh '''
+                bat """
                   npm install
                   npm test
-                '''
+                """
             }
         }
     }
