@@ -4,22 +4,18 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo "Checking out code from GitHub..."
+                echo "Checking out code..."
                 checkout scm
             }
         }
 
-        stage('Build (MVP)') {
+        stage('Build & Unit Tests') {
             steps {
-                echo "Simulating build step for my-valuecatcher-service..."
-                // later: npm install, tests, etc.
-            }
-        }
-
-        stage('Test (MVP)') {
-            steps {
-                echo "Simulating tests..."
-                // later: add real tests
+                echo "Installing dependencies and running tests..."
+                sh '''
+                  npm install
+                  npm test
+                '''
             }
         }
     }
