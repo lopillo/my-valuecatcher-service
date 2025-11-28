@@ -1,6 +1,6 @@
 📦 ValueCatcher MVP
 
-Minimal Service to Validate DevOps Pipeline Infrastructure
+Minimal Serice to Validate DevOps Pipeline Infrastructure
 
 🚀 Purpose of This Application
 
