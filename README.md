@@ -35,7 +35,7 @@ Example JSON payload sent from Jenkins:
 
 The app simply prints this information in the console as proof that the pipeline automation works correctly.
 
-💡 Why This MVP Exists
+💡 Why This MVP Existse
 
 This app is used to validate this DevOps Architecture Pipeline for the project DevOps Case study⬇️
 
