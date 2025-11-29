@@ -71,14 +71,15 @@ pipeline {
             steps {
                 echo 'Running JMeter load test...'
 
-                // Run JMeter in non-GUI mode
+                // Run JMeter in non-GUI mode and FORCE XML output for the JTL
                 bat '''
                     "%JMETER_PATH%" -n ^
                       -t tests\\jmeter\\valuecatcher_load_test.jmx ^
-                      -l tests\\jmeter\\jmeter_results.jtl
+                      -l tests\\jmeter\\jmeter_results.jtl ^
+                      -Jjmeter.save.saveservice.output_format=xml
                 '''
 
-                // Archive JTL results
+                // Archive JTL results so you can download them from Jenkins
                 archiveArtifacts artifacts: 'tests/jmeter/jmeter_results.jtl', fingerprint: true
 
                 // Explicit JMeter validation: fail only if there are real failed samples
