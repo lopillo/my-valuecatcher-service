@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "autocannon": "^8.0.0"
   }
 }
-
-
