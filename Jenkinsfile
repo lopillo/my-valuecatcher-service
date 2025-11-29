@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         DOCKER_BUILDKIT = '1'
+        // Adjust this path to where JMeter is installed on your Jenkins agent
+        JMETER_PATH = 'C:\\tools\\apache-jmeter-5.6.2\\bin\\jmeter.bat'
     }
 
     stages {
@@ -73,7 +75,7 @@ pipeline {
 
                 // Run JMeter in non-GUI mode against your .jmx file
                 bat '''
-                    jmeter -n ^
+                    "%JMETER_PATH%" -n ^
                       -t tests\\jmeter\\valuecatcher_load_test.jmx ^
                       -l tests\\jmeter\\jmeter_results.jtl
                 '''
