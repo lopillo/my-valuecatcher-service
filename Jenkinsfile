@@ -83,38 +83,28 @@ pipeline {
                     )
                 '''
 
-                // Run JMeter in non-GUI mode, save XML JTL and generate HTML report
+                // Run JMeter in non-GUI mode, save CSV results and generate HTML report
                 bat '''
                     "%JMETER_PATH%" -n ^
                       -t tests\\jmeter\\valuecatcher_load_test.jmx ^
-                      -l tests\\jmeter\\jmeter_results.jtl ^
-                      -Jjmeter.save.saveservice.output_format=xml ^
+                      -l tests\\jmeter\\jmeter_results.csv ^
+                      -Jjmeter.save.saveservice.output_format=csv ^
                       -e -o tests\\jmeter\\html-report ^
                       -Jperf.max.avg.ms=%PERF_MAX_AVG_MS% ^
                       -Jperf.max.p95.ms=%PERF_MAX_P95_MS% ^
                       -Jperf.min.throughput=%PERF_MIN_THROUGHPUT%
                 '''
 
-                // Archive JTL + HTML report so you can download / view later
-                archiveArtifacts artifacts: 'tests/jmeter/jmeter_results.jtl, tests/jmeter/html-report/**', fingerprint: true
+                // Archive CSV + HTML report so you can download / view later
+                archiveArtifacts artifacts: 'tests/jmeter/jmeter_results.csv, tests/jmeter/html-report/**', fingerprint: true
 
-                // Functional gate: fail if any JMeter sample failed
-                bat '''
-                    @echo off
-                    findstr /C:"<failure>true</failure>" tests\\jmeter\\jmeter_results.jtl >nul
-                    if %ERRORLEVEL% EQU 0 (
-                        echo JMeter detected failed requests
-                        exit /b 1
-                    ) else (
-                        echo JMeter reports: all requests successful (no failed samples).
-                    )
-                '''
-
-                // Performance gate: use statistics.json from the HTML report
-                // to enforce basic performance thresholds (avg, p95, throughput)
+                // Functional + performance gate in one PowerShell step
                 bat '''
                     @echo off
                     powershell -NoProfile -Command ^
+                      "$csv = Import-Csv 'tests/jmeter/jmeter_results.csv'; " ^
+                      "if ($csv | Where-Object { $_.success -eq 'false' }) { " ^
+                      "  Write-Host 'JMeter detected failed requests.'; exit 1 }; " ^
                       "$stats = Get-Content 'tests/jmeter/html-report/statistics.json' | ConvertFrom-Json; " ^
                       "$overall = $stats.Total; " ^
                       "$avg  = [double]$overall.meanResTime; " ^
