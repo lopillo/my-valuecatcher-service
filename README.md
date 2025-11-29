@@ -16,11 +16,11 @@ The ValueCatcher MVP is a very small test application created only to validate a
 It is a lightweight microservice used to capture and log deployment events from Jenkins during pipeline execution.
 
 🔍 What Does This App Do?
-
+g
 This MVP app exposes just one small API endpoint:
 
 Method Endpoint Purpose
-POST /api/ci-events Receives deployment status from Jenkins and logs it
+POST aS/api/ci-events Receives deployment status from Jenkins and logs it
 
 Example JSON payload sent from Jenkins:
 
