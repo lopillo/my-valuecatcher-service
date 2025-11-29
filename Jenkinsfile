@@ -65,21 +65,13 @@ pipeline {
             }
         }
 
-        stage('Performance Test (ValueCatcher)') {
-            steps {
-                echo "Running performance test against ValueCatcher (autocannon)..."
+       stage('Performance Test (JMeter)') {
+    echo 'Running JMeter load test...'
+    bat '''
+        jmeter -n -t tests\\jmeter\\valuecatcher_load_test.jmx -l test-results.jtl -e -o test-report
+    '''
+}
 
-                // use local project binary
-                bat """
-                  node_modules\\.bin\\autocannon -d 10 -c 10 http://localhost:3000/api/ci-events > perf-results.txt
-                """
-
-                // show results in Jenkins log
-                bat "type perf-results.txt"
-
-                // archive results
-                archiveArtifacts artifacts: 'perf-results.txt', fingerprint: true
-            }
         }
     }
 }
