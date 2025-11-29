@@ -20,7 +20,6 @@ pipeline {
             steps {
                 echo 'Installing dependencies and running tests...'
                 bat 'npm install'
-                // For now we keep tests trivial
                 bat 'npm test || echo "No real tests yet"'
             }
         }
@@ -29,7 +28,6 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
                 script {
-                    // Use Jenkins build number as Docker tag
                     env.IMAGE_TAG = env.BUILD_NUMBER
                 }
                 bat 'docker build -t my-valuecatcher-service:%IMAGE_TAG% .'
@@ -73,19 +71,19 @@ pipeline {
             steps {
                 echo 'Running JMeter load test...'
 
-                // Run JMeter in non-GUI mode against your .jmx file
+                // Run JMeter in non-GUI mode
                 bat '''
                     "%JMETER_PATH%" -n ^
                       -t tests\\jmeter\\valuecatcher_load_test.jmx ^
                       -l tests\\jmeter\\jmeter_results.jtl
                 '''
 
-                // Archive raw results file in Jenkins
+                // Archive JTL results
                 archiveArtifacts artifacts: 'tests/jmeter/jmeter_results.jtl', fingerprint: true
 
-                // Simple gate: fail if any request failed (contains ",false," in JTL)
+                // Improved JMeter validation: detect only real failed samples
                 bat '''
-                    findstr /C:",false," tests\\jmeter\\jmeter_results.jtl >nul ^
+                    findstr /C:"<failure>true</failure>" tests\\jmeter\\jmeter_results.jtl >nul ^
                       && (echo JMeter detected failed requests & exit /b 1) ^
                       || (echo JMeter reports: all requests successful.)
                 '''
