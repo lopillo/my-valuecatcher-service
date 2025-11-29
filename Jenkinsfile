@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOCKER_BUILDKIT = '1'
-        // Adjust this path to where JMeter is installed on your Jenkins agent
-        JMETER_PATH = 'C:\\tools\\apache-jmeter-5.6.2\\bin\\jmeter.bat'
+        // JMeter installed via Chocolatey
+        JMETER_PATH = 'C:\\ProgramData\\chocolatey\\lib\\jmeter\\tools\\apache-jmeter-5.6.3\\bin\\jmeter.bat'
     }
 
     stages {
