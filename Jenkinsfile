@@ -81,11 +81,17 @@ pipeline {
                 // Archive JTL results
                 archiveArtifacts artifacts: 'tests/jmeter/jmeter_results.jtl', fingerprint: true
 
-                // Improved JMeter validation: detect only real failed samples
+                // Explicit JMeter validation: fail only if there are real failed samples
                 bat '''
-                    findstr /C:"<failure>true</failure>" tests\\jmeter\\jmeter_results.jtl >nul ^
-                      && (echo JMeter detected failed requests & exit /b 1) ^
-                      || (echo JMeter reports: all requests successful.)
+                    @echo off
+                    findstr /C:"<failure>true</failure>" tests\\jmeter\\jmeter_results.jtl >nul
+                    if %ERRORLEVEL% EQU 0 (
+                        echo JMeter detected failed requests
+                        exit /b 1
+                    ) else (
+                        echo JMeter reports: all requests successful.
+                        exit /b 0
+                    )
                 '''
             }
         }
