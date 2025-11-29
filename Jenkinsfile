@@ -7,6 +7,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo "Checking out code..."
@@ -33,11 +34,22 @@ pipeline {
             }
         }
 
+        stage('Provision Infrastructure (Terraform)') {
+            steps {
+                echo "Provisioning infrastructure with Terraform (Docker container for ValueCatcher)..."
+                dir('infra/terraform') {
+                    bat """
+                      terraform init -input=false
+                      terraform apply -input=false -auto-approve -var "image_name=%APP_NAME%" -var "image_tag=%BUILD_NUMBER%"
+                    """
+                }
+            }
+        }
+
         stage('Notify ValueCatcher') {
             steps {
                 echo "Sending build info to ValueCatcher..."
 
-                // 1) Create JSON payload file with build info
                 writeFile file: 'payload.json', text: """{
   "application": "${env.APP_NAME}",
   "buildNumber": "${env.BUILD_NUMBER}",
@@ -45,12 +57,28 @@ pipeline {
   "status": "SUCCESS"
 }"""
 
-                // 2) Use curl (Windows) to POST it to ValueCatcher
                 bat """
                   curl -X POST %VALUECATCHER_URL% ^
                     -H "Content-Type: application/json" ^
                     --data-binary @payload.json
                 """
+            }
+        }
+
+        stage('Performance Test (ValueCatcher)') {
+            steps {
+                echo "Running performance test against ValueCatcher (autocannon)..."
+
+                // Run a small 10s load test with 10 concurrent users
+                bat """
+                  autocannon -d 10 -c 10 http://localhost:3000/api/ci-events > perf-results.txt
+                """
+
+                // Show results inside Jenkins log
+                bat "type perf-results.txt"
+
+                // Archive results as artifact so you can download them
+                archiveArtifacts artifacts: 'perf-results.txt', fingerprint: true
             }
         }
     }
