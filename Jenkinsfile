@@ -5,6 +5,11 @@ pipeline {
         DOCKER_BUILDKIT = '1'
         // JMeter installed via Chocolatey
         JMETER_PATH = 'C:\\ProgramData\\chocolatey\\lib\\jmeter\\tools\\apache-jmeter-5.6.3\\bin\\jmeter.bat'
+
+        // ---- Performance thresholds (tune these as needed) ----
+        PERF_MAX_AVG_MS       = '500'   // max allowed average response time
+        PERF_MAX_P95_MS       = '800'   // max allowed 95th percentile
+        PERF_MIN_THROUGHPUT   = '30'    // min allowed throughput (req/sec)
     }
 
     stages {
@@ -71,18 +76,29 @@ pipeline {
             steps {
                 echo 'Running JMeter load test...'
 
-                // Run JMeter in non-GUI mode and FORCE XML output for the JTL
+                // Clean previous HTML report if it exists
+                bat '''
+                    if exist tests\\jmeter\\html-report (
+                        rmdir /S /Q tests\\jmeter\\html-report
+                    )
+                '''
+
+                // Run JMeter in non-GUI mode, save XML JTL and generate HTML report
                 bat '''
                     "%JMETER_PATH%" -n ^
                       -t tests\\jmeter\\valuecatcher_load_test.jmx ^
                       -l tests\\jmeter\\jmeter_results.jtl ^
-                      -Jjmeter.save.saveservice.output_format=xml
+                      -Jjmeter.save.saveservice.output_format=xml ^
+                      -e -o tests\\jmeter\\html-report ^
+                      -Jperf.max.avg.ms=%PERF_MAX_AVG_MS% ^
+                      -Jperf.max.p95.ms=%PERF_MAX_P95_MS% ^
+                      -Jperf.min.throughput=%PERF_MIN_THROUGHPUT%
                 '''
 
-                // Archive JTL results so you can download them from Jenkins
-                archiveArtifacts artifacts: 'tests/jmeter/jmeter_results.jtl', fingerprint: true
+                // Archive JTL + HTML report so you can download / view later
+                archiveArtifacts artifacts: 'tests/jmeter/jmeter_results.jtl, tests/jmeter/html-report/**', fingerprint: true
 
-                // Explicit JMeter validation: fail only if there are real failed samples
+                // Functional gate: fail if any JMeter sample failed
                 bat '''
                     @echo off
                     findstr /C:"<failure>true</failure>" tests\\jmeter\\jmeter_results.jtl >nul
@@ -90,9 +106,24 @@ pipeline {
                         echo JMeter detected failed requests
                         exit /b 1
                     ) else (
-                        echo JMeter reports: all requests successful.
-                        exit /b 0
+                        echo JMeter reports: all requests successful (no failed samples).
                     )
+                '''
+
+                // Performance gate: use statistics.json from the HTML report
+                // to enforce basic performance thresholds (avg, p95, throughput)
+                bat '''
+                    @echo off
+                    powershell -NoProfile -Command ^
+                      "$stats = Get-Content 'tests/jmeter/html-report/statistics.json' | ConvertFrom-Json; " ^
+                      "$overall = $stats.Total; " ^
+                      "$avg  = [double]$overall.meanResTime; " ^
+                      "$p95  = [double]$overall.pct2ResTime; " ^
+                      "$thr  = [double]$overall.throughput; " ^
+                      "Write-Host ('Performance summary -> Avg: {0} ms, p95: {1} ms, Throughput: {2} req/s' -f $avg,$p95,$thr); " ^
+                      "if ($avg -gt [double]$env:PERF_MAX_AVG_MS -or $p95 -gt [double]$env:PERF_MAX_P95_MS -or $thr -lt [double]$env:PERF_MIN_THROUGHPUT) { " ^
+                      "  Write-Host 'Performance thresholds NOT met. Failing build.'; exit 1 } else { " ^
+                      "  Write-Host 'Performance thresholds OK.'; exit 0 }"
                 '''
             }
         }
