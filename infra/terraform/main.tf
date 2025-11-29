@@ -9,16 +9,6 @@ terraform {
 
 provider "docker" {}
 
-variable "image_name" {
-  type    = string
-  default = "my-valuecatcher-service"
-}
-
-variable "image_tag" {
-  type    = string
-  default = "latest"
-}
-
 resource "docker_network" "vc_net" {
   name = "valuecatcher-net"
 }
