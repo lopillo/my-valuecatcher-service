@@ -65,23 +65,21 @@ pipeline {
             }
         }
 
-                stage('Performance Test (ValueCatcher))') {
+        stage('Performance Test (ValueCatcher)') {
             steps {
                 echo "Running performance test against ValueCatcher (autocannon)..."
 
-                // Use the local project binary: node_modules\.bin\autocannon
+                // use local project binary
                 bat """
                   node_modules\\.bin\\autocannon -d 10 -c 10 http://localhost:3000/api/ci-events > perf-results.txt
                 """
 
-                // Show results inside Jenkins log
+                // show results in Jenkins log
                 bat "type perf-results.txt"
 
-                // Archive results so you can download them from Jenkins
+                // archive results
                 archiveArtifacts artifacts: 'perf-results.txt', fingerprint: true
             }
-        }
-
         }
     }
 }
